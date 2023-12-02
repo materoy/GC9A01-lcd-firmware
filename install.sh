@@ -8,3 +8,6 @@ bin=target/armv7-unknown-linux-gnueabihf/debug/gc9a01-lcd-firmware
 echo "Sending executable to remote"
 scp $bin "pi@pi:"
 echo "Sent ..."
+
+echo "Running it ..."
+ssh pi@pi './gc9a01-lcd-firmware'
