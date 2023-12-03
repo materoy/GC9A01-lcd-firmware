@@ -1,4 +1,5 @@
-
+# Exits if one of the command returns exit status other than 0
+set -e
 # Compile for raspberry pi using cross
 cross build  --target=armv7-unknown-linux-gnueabihf
 

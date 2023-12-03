@@ -1,5 +1,10 @@
 use std::error::Error;
-use rppal::spi::{Bus, Mode, Segment, SlaveSelect, Spi};
+use display_interface_spi::SPIInterface;
+use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::prelude::*;
+use rppal::gpio::{Gpio, OutputPin};
+use rppal::pwm::Channel::Pwm0;
+use rppal::spi::{Bus, Mode, SlaveSelect, Spi};
 
 // Instruction Set
 const WRITE: u8 = 0b0010;
@@ -9,45 +14,36 @@ const WREN: u8 = 0b0110;
 
 const WIP: u8 = 1;
 
-fn main() -> Result<(), Box<dyn Error>>{
+// Pins
+const CS_PIN: u8 = 8;
+const DC_PIN: u8 = 25;
+const RST_PIN: u8 = 27;
+const BL_PIN: u8 = 18;
 
-    let mut spi = Spi::new(Bus::Spi0, SlaveSelect::Ss0, 8_000_000, Mode::Mode0)?;
 
-    // Set the write enable latch using the WREN instruction. This is required
-    // before any data can be written. The write enable latch is automatically
-    // reset after a WRITE instruction is successfully executed.
-    spi.write(&[WREN])?;
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut delay = rppal::hal::Delay::new();
+    let spi = Spi::new(Bus::Spi0, SlaveSelect::Ss0, 8_000_000, Mode::Mode0)?;
 
-    // Use the WRITE instruction to select memory address 0 and write 5 bytes
-    // (1, 2, 3, 4, 5). Addresses are specified as 24-bit values, but the 7 most
-    // significant bits are ignored.
-    spi.write(&[WRITE, 0, 0, 0, 1, 2, 3, 4, 5])?;
+    let gpio = Gpio::new()?;
+    let dc = gpio.get(DC_PIN)?.into_output();
+    let cs = gpio.get(CS_PIN)?.into_output();
+    let rst_pin = gpio.get(RST_PIN)?.into_output();
 
-    // Read the STATUS register by writing the RDSR instruction, and then reading
-    // a single byte. Loop until the WIP bit is set to 0, indicating the write
-    // operation is completed. transfer_segments() will keep the Slave Select line
-    // active until both segments have been transferred.
-    let mut buffer = [0u8; 1];
-    loop {
-        spi.transfer_segments(&[
-            Segment::with_write(&[RDSR]),
-            Segment::with_read(&mut buffer),
-        ])?;
+    let spi_interface :SPIInterface<Spi, OutputPin, OutputPin> = SPIInterface::new(spi, dc, cs);
 
-        if buffer[0] & WIP == 0 {
-            break;
-        }
-    }
+    let pwm = rppal::pwm::Pwm::new(Pwm0)?;
+    pwm.enable()?;
 
-    // Use the READ instruction to select memory address 0, specified as a 24-bit
-    // value, and then read 5 bytes.
-    let mut buffer = [0u8; 5];
-    spi.transfer_segments(&[
-        Segment::with_write(&[READ, 0, 0, 0]),
-        Segment::with_read(&mut buffer),
-    ])?;
+    let mut display_driver = gc9a01a::GC9A01A::new(spi_interface, rst_pin, pwm);
 
-    println!("Bytes read: {:?}", buffer);
+    display_driver.reset(&mut delay).unwrap();
+
+    display_driver.set_backlight(550000f64);
+
+    display_driver.initialize(&mut delay).unwrap();
+
+    display_driver.clear(Rgb565::BLUE).unwrap();
 
     Ok(())
 }
