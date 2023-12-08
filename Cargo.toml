@@ -19,3 +19,5 @@ panic-probe = { version = "0.3.1", features = ["print-defmt"] }
 rppal = { version = "0.15.0", features = ["hal"] }
 stm32-hal2 = { version = "^1.6.4", features = ["f411", "f4rt", "embedded_hal"]}
 tinybmp = "0.5.0"
+embedded-graphics-simulator = "0.6.0"
+
