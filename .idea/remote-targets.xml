@@ -2,10 +2,10 @@
 <project version="4">
   <component name="RemoteTargetsManager">
     <targets>
-      <target name="pi@192.168.12.42:22" type="ssh/sftp" uuid="26f9efd5-30b6-4316-98ff-51a2616fb18c">
+      <target name="pi@pi:22" type="ssh/sftp" uuid="64f4047e-39c3-417d-a590-d11bfcab49d1">
         <config>
           <option name="projectRootOnTarget" value="$PROJECT_DIR$/../../../pi/Rust/gc9a01-lcd-firmware" />
-          <option name="serverName" value="pi@192.168.12.42:22 agent" />
+          <option name="serverName" value="pi@pi:22 agent" />
           <option name="useRsync" value="true" />
         </config>
         <ContributedStateBase type="RsLanguageRuntime">
@@ -15,9 +15,6 @@
             <option name="rustcPath" value="$PROJECT_DIR$/../../../pi/.cargo/bin/rustc" />
             <option name="rustcVersion" value="1.74.0 (79e9716c9 2023-11-13)" />
           </config>
-        </ContributedStateBase>
-        <ContributedStateBase type="RsLanguageRuntime">
-          <config />
         </ContributedStateBase>
       </target>
     </targets>

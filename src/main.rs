@@ -1,4 +1,5 @@
 use std::time::Duration;
+
 use display_interface_spi::SPIInterface;
 use embedded_graphics::mono_font::ascii::FONT_6X10;
 use embedded_graphics::mono_font::MonoTextStyle;
@@ -23,13 +24,6 @@ const _BL_PIN: u8 = 18;
 
 const DISPLAY_SIZE: u32 = 240;
 
-fn mcu_host() -> bool {
-    match Gpio::new() {
-        Ok(_) => true,
-        Err(_) => false
-    }
-}
-
 fn get_rpi02w_display_driver<'a>() -> GC9A01A<SPIInterface<Spi, OutputPin, OutputPin>, OutputPin, Pwm> {
     let spi = Spi::new(Bus::Spi0, SlaveSelect::Ss0, 8_000_000, Mode::Mode0).unwrap();
 
@@ -38,47 +32,37 @@ fn get_rpi02w_display_driver<'a>() -> GC9A01A<SPIInterface<Spi, OutputPin, Outpu
     let cs = gpio.get(CS_PIN).unwrap().into_output();
     let rst_pin = gpio.get(RST_PIN).unwrap().into_output();
     let spi_interface: SPIInterface<Spi, OutputPin, OutputPin> = SPIInterface::new(spi, dc, cs);
-    let pwm = rppal::pwm::Pwm::new(Pwm0).unwrap();
+    let pwm = Pwm::new(Pwm0).unwrap();
     pwm.set_period(Duration::from_millis(30)).unwrap();
     pwm.enable().unwrap();
     let display_driver = GC9A01A::new(spi_interface, rst_pin, pwm);
     display_driver
 }
 
-fn main() -> ! {
-    let mut delay = rppal::hal::Delay::new();
+fn main() {
+    #[cfg(feature = "rpi")]
+    {
+        let mut delay = rppal::hal::Delay::new();
+        let mut display_driver = crate::get_rpi02w_display_driver();
+        display_driver.reset(&mut delay).unwrap();
 
-    match mcu_host() {
-        true => {}
-        false => {}
+        display_driver.set_backlight(550000f64);
+
+        display_driver.initialize(&mut delay).unwrap();
+
+        display_driver.clear(Rgb565::BLACK).unwrap();
+
+        draw(&mut display_driver).unwrap();
     }
 
-    match Gpio::new() {
-        Ok(_) => {
-            let mut display_driver = get_rpi02w_display_driver();
-            display_driver.reset(&mut delay).unwrap();
-
-            display_driver.set_backlight(550000f64);
-
-            display_driver.initialize(&mut delay).unwrap();
-
-            display_driver.clear(Rgb565::BLACK).unwrap();
-
-            draw(&mut display_driver).unwrap();
-
-        }
-        Err(_) => {
-            let mut simulator_display = SimulatorDisplay::<Rgb565>::new(Size::new(240, 240));
-            let output_settings = OutputSettingsBuilder::new()
-                .build();
-            draw(&mut simulator_display).unwrap();
-
-            Window::new("1.28 in display", &output_settings).show_static(&simulator_display);
-        }
+    #[cfg(feature = "pc")]
+    {
+        let mut simulator_display = SimulatorDisplay::<Rgb565>::new(Size::new(240, 240));
+        let output_settings = OutputSettingsBuilder::new()
+            .build();
+        draw(&mut simulator_display).unwrap();
+        Window::new("Sim", &output_settings).show_static(&simulator_display);
     }
-
-
-    loop {}
 }
 
 fn draw<D: DrawTarget<Color=Rgb565>>(display_driver: &mut D) -> Result<(), D::Error> {
