@@ -8,7 +8,6 @@ use rppal::gpio::{Gpio, OutputPin};
 use rppal::pwm::Channel::Pwm0;
 use rppal::pwm::Pwm;
 use rppal::spi::{Bus, Mode, SlaveSelect, Spi};
-use crate::draw::draw;
 
 // Pins
 const CS_PIN: u8 = 8;
@@ -31,7 +30,7 @@ fn get_rpi02w_display_driver<'a>() -> GC9A01A<SPIInterface<Spi, OutputPin, Outpu
     let display_driver = GC9A01A::new(spi_interface, rst_pin, pwm);
     display_driver
 }
-pub fn rpi() {
+pub fn rpi() -> GC9A01A<SPIInterface<Spi, OutputPin, OutputPin>, OutputPin, Pwm> {
     let mut delay = rppal::hal::Delay::new();
     let mut display_driver = get_rpi02w_display_driver();
     display_driver.reset(&mut delay).unwrap();
@@ -40,7 +39,8 @@ pub fn rpi() {
 
     display_driver.initialize(&mut delay).unwrap();
 
-    display_driver.clear(Rgb565::RED).unwrap();
+    display_driver.clear(Rgb565::BLACK).unwrap();
 
-    draw(&mut display_driver).unwrap();
+    // draw(&mut display_driver).unwrap();
+    display_driver
 }
